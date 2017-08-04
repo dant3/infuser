@@ -1,30 +1,57 @@
 
-import org.infuser.ComponentId
-import org.infuser.Module
-import org.infuser.inject
+import org.infuser.*
 
 
-object ComponentsRegistry {
-    val name = ComponentId<String>()
-    val greetingString = ComponentId<String>()
+object NameModule : ModuleObject() {
+    val nullable = ComponentId<String?>("null")
+    val name = ComponentId<String>("name")
+    val world = ComponentId<String>("world")
+
+    override fun Module.Builder.definition() {
+        bind(nullable) via instance(null)
+        bind(world) via singleton { "World" }
+        bind(name) via singleton { get(world) }
+    }
 }
 
-class Greeter(module: Module) {
-    private val greeting by module.inject(ComponentsRegistry.greetingString)
 
+object GreeterModule : ModuleObject() {
+    val greetingString = ComponentId<String>("greeting")
+
+    override fun Module.Builder.definition() {
+        include(NameModule)
+        bind(greetingString) via factory { "Hello, ${get(NameModule.name)}!" }
+    }
+}
+
+
+class Greeter(module: GreeterModule) {
+    val greeting by module.inject(GreeterModule.greetingString)
     fun greet() { println(greeting) }
 }
 
+
 object Test {
     @JvmStatic fun main(args: Array<String>) {
-        val nameModule = Module {
-            bind(ComponentsRegistry.name) { "World" }
+        val greeterModule = GreeterModule
+
+        val name = greeterModule.get(NameModule.name)
+        val name2 = NameModule.get(NameModule.name)
+
+        if (name !== name2) {
+            throw IllegalStateException()
         }
-        val greeterContext = Module {
-            include(nameModule)
-            bind(ComponentsRegistry.greetingString) { "Hello, ${get(ComponentsRegistry.name)}!" }
-        }
-        val greeter = Greeter(greeterContext)
+
+        val greeter = Greeter(greeterModule)
         greeter.greet()
+
+        if (greeter.greeting === greeterModule.get(GreeterModule.greetingString)) {
+            throw IllegalStateException()
+        }
+
+        val nullValue = NameModule.get(NameModule.nullable)
+        println("nullValue = $nullValue")
+
+        println("ids: " + greeterModule.providedIds().joinToString(", ", "[", "]"))
     }
 }

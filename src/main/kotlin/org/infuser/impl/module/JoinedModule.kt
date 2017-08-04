@@ -2,14 +2,18 @@ package org.infuser.impl.module
 
 import org.infuser.ComponentId
 import org.infuser.Module
+import org.infuser.error.ComponentNotFoundException
 
 class JoinedModule private constructor(private val childModules: Set<Module>, private val providedIds: Set<ComponentId<*>>) : Module {
     override fun providedIds(): Set<ComponentId<*>> = providedIds
 
-    override fun <T : Any> getOptionally(id: ComponentId<T>): T? = childModules.fold(null, { instance: T?, module ->
-        if (instance != null) instance
-        else module.getOptionally(id)
-    })
+    override fun <T> get(id: ComponentId<T>): T {
+        val moduleWithSuchId = childModules.firstOrNull { it.contains(id) }
+        return when (moduleWithSuchId) {
+            null -> throw ComponentNotFoundException("Could not find component with id $id")
+            else -> moduleWithSuchId.get(id)
+        }
+    }
 
     companion object {
         operator fun invoke(childModules: Set<Module>, allowOverlaps: Boolean = false): JoinedModule {
