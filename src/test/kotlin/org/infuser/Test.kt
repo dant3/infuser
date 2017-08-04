@@ -3,8 +3,8 @@ import org.infuser.*
 
 
 object NameModule : ModuleObject() {
-    val nullable = ComponentId<String?>("null")
-    val name = ComponentId<String>("name")
+    val nullable by componentId<String?>()
+    val name by componentId<String>()
     val world = ComponentId<String>("world")
 
     override fun Module.Builder.definition() {
@@ -16,7 +16,7 @@ object NameModule : ModuleObject() {
 
 
 object GreeterModule : ModuleObject() {
-    val greetingString = ComponentId<String>("greeting")
+    val greetingString by componentId<String>("greeting")
 
     override fun Module.Builder.definition() {
         include(NameModule)
